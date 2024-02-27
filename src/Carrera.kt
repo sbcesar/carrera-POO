@@ -1,4 +1,3 @@
-import java.awt.Component.BaselineResizeBehavior
 import kotlin.random.Random
 
 /**
@@ -27,15 +26,11 @@ class Carrera(val nombreCarrera: String, private val distanciaTotal: Float, priv
         const val KM_TRAMO = 20f
     }
 
-    /**
-     * Inicia la carrera, estableciendo estadoCarrera a true y comenzando el ciclo de iteraciones donde los vehículos avanzan y realizan acciones.
-     */
     fun iniciarCarrera() {
         estadoCarrera = true
         while (estadoCarrera) {
             val vehiculoRandom = participantes.random()
             avanzarVehiculo(vehiculoRandom)
-            cajaSorpresa(vehiculoRandom)
             realizaPosiciones()
             determinarGanador()
         }
@@ -46,46 +41,69 @@ class Carrera(val nombreCarrera: String, private val distanciaTotal: Float, priv
 
         when (cajaRandom) {
             1 -> {
-                println("PREMIO!!")
+                registrarAccion(vehiculo.nombre,"PREMIO!! - Obtienes 10 km mas!!")
                 sumar10(vehiculo)
             }
             2 -> {
-                println("PREMIO!!")
-                TODO("Funcion Teletransporte: Premio que nos teletransporta 100km más adelante en la carrera (sin superar la distancia total de la carrera). ")
+                registrarAccion(vehiculo.nombre,"PREMIO!! - Avanzas 100 km!!")
+                teletransporte(vehiculo)
             }
             3 -> {
-                println("PREMIO!!")
-                TODO("Funcion RetrasarTodos: Retrasar al resto de vehículos 100km (tope mínimo km 0).")
+                registrarAccion(vehiculo.nombre,"PREMIO!! - Retrasas 100 km al resto de participantes!!")
+                retrasarTodos(vehiculo)
             }
             4 -> {
-                println("PENALIZACION!!")
-                TODO("Funcion VehiculoAlInicio: Retrasar un vehículo al azar al inicio (km 0)... puede ser el mismo vehículo al que le ha tocado la caja.")
+                registrarAccion(vehiculo.nombre,"PREMIO O PENALIZACION?? - Se retrasa un vehiculo random al inicio de la carrera!!")
+                vehiculoAlInicio()
             }
             5 -> {
-                println("PENALIZACION!!")
-                TODO("Funcion CasillaDeSalida: Retrasar nuestro vehículo al inicio (km 0).")
+                registrarAccion(vehiculo.nombre,"PENALIZACION!! - Volvemos al inicio de la carrera!! Oh no!!!")
+                casillaDeSalida(vehiculo)
             }
             6 -> {
-                println("PENALIZACION!!")
-                TODO("Funcion Restar5: Penalización que resta 5km por litro para el siguiente avance en nuestro vehículo.")
+                registrarAccion(vehiculo.nombre,"PENALIZACION!! - Oh no!! Volvemos atras!!")
+                restar5(vehiculo)
             }
             7 -> {
-                println("Caja vacia (No realiza ninguna accion)")
+                registrarAccion(vehiculo.nombre,"Caja vacia (No realiza ninguna accion)")
             }
             8 -> {
-                println("Caja vacia (No realiza ninguna accion)")
+                registrarAccion(vehiculo.nombre,"Caja vacia (No realiza ninguna accion)")
             }
             9 -> {
-                println("Caja vacia (No realiza ninguna accion)")
+                registrarAccion(vehiculo.nombre,"Caja vacia (No realiza ninguna accion)")
             }
             10 -> {
-                println("Caja vacia (No realiza ninguna accion)")
+                registrarAccion(vehiculo.nombre,"Caja vacia (No realiza ninguna accion)")
             }
         }
     }
 
     private fun sumar10(vehiculo: Vehiculo) {
-        vehiculo.combustibleActual += vehiculo.combustibleActual * 10
+        vehiculo.kilometrosActuales += vehiculo.combustibleActual * 10
+    }
+
+    private fun teletransporte(vehiculo: Vehiculo) {
+        val distanciaRestante = distanciaTotal - vehiculo.kilometrosActuales
+        vehiculo.kilometrosActuales += minOf(distanciaRestante,100f)
+    }
+
+    private fun retrasarTodos(vehiculo: Vehiculo) {
+        participantes.filter { it != vehiculo }
+            .forEach { it.kilometrosActuales -= minOf(it.kilometrosActuales, 100f) }
+    }
+
+    private fun vehiculoAlInicio() {
+        val vehiculoPerjudicado = participantes.random()
+        vehiculoPerjudicado.kilometrosActuales = 0f
+    }
+
+    private fun casillaDeSalida(vehiculo: Vehiculo) {
+        vehiculo.kilometrosActuales = 0f
+    }
+
+    private fun restar5(vehiculo: Vehiculo) {
+        vehiculo.combustibleActual -= vehiculo.combustibleActual * 5
     }
 
     private fun avanzarTramo(vehiculo: Vehiculo, distanciaTramo: Float) {
@@ -130,15 +148,14 @@ class Carrera(val nombreCarrera: String, private val distanciaTotal: Float, priv
 
             avanzarTramo(vehiculo, distanciaTramo)
 
+            cajaSorpresa(vehiculo)
+
             distanciaARecorrer = (distanciaARecorrer - distanciaTramo).redondear(2)
         }
 
         registrarAccion(vehiculo.nombre, "Finaliza viaje: Total recorrido $distanciaAleatoria kms (${vehiculo.kilometrosActuales} kms y ${vehiculo.combustibleActual} L actuales)")
     }
 
-    /**
-     * Reposta el vehículo seleccionado, incrementando su combustibleActual y registrando la acción en historialAcciones.
-     */
     private fun repostarVehiculo(vehiculo: Vehiculo, cantidad: Float) {
         vehiculo.repostar(cantidad)
         registrarAccion(vehiculo.nombre,"Repostaje tramo: ${vehiculo.capacidadCombustible}")
@@ -157,30 +174,20 @@ class Carrera(val nombreCarrera: String, private val distanciaTotal: Float, priv
         }
     }
 
-    /**
-     * Actualiza posiciones con los kilómetros recorridos por cada vehículo después de cada iteración, manteniendo un seguimiento de la competencia.
-     */
     private fun realizaPosiciones() {
         posiciones = mutableMapOf()
-        //Ordena los participantes segun la distancia recorrida de mayor a menor
+
         val participantesOrdenados = participantes.sortedByDescending { vehiculo -> vehiculo.kilometrosActuales }
 
-        //Actualiza en base al orden
         participantesOrdenados.forEach { vehiculo -> posiciones[vehiculo.nombre] = vehiculo.kilometrosActuales.toInt() }
     }
 
-    /**
-     * Revisa posiciones para identificar al vehículo (o vehículos) que haya alcanzado o superado la distanciaTotal, estableciendo el estado de la carrera a finalizado y determinando el ganador.
-     */
     fun determinarGanador(): String {
         val ganador =  posiciones.filter { it.value > distanciaTotal }
             posiciones.forEach { (_, kmRecorridos) -> if (kmRecorridos >= distanciaTotal) estadoCarrera = false }.toString()
         return ganador.keys.toString().replace("[","").replace("]","")
     }
 
-    /**
-     * Añade una acción al historialAcciones del vehículo especificado.
-     */
     private fun registrarAccion(nombreVehiculo: String, accion: String) {
         if (historialAcciones.contains(nombreVehiculo)) {
             historialAcciones[nombreVehiculo]?.add(accion)
@@ -189,9 +196,6 @@ class Carrera(val nombreCarrera: String, private val distanciaTotal: Float, priv
         }
     }
 
-    /**
-     * Devuelve una clasificación final de los vehículos, cada elemento tendrá el nombre del vehiculo, posición ocupada, la distancia total recorrida, el número de paradas para repostar y el historial de acciones. La collección estará ordenada por la posición ocupada.
-     */
     fun obtenerResultado(): MutableList<ResultadoCarrera> {
         var posicion = 1
         val resultadoCarrera = mutableListOf<ResultadoCarrera>()
