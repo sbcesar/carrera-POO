@@ -16,15 +16,23 @@ class Automovil(
     capacidadCombustible: Float,
     combustibleActual: Float,
     kilometrosActuales: Float,
-    var esHibrido: Boolean,
-    var condicionBritanica: Boolean
+    private var esHibrido: Boolean
 ): Vehiculo(nombre, marca, modelo, capacidadCombustible, combustibleActual, kilometrosActuales) {
 
     companion object{
-        /**
-         * Kilómetros por litro de combustible para el automóvil.
-         */
+
         const val KM_POR_LITRO = 15
+
+        var condicionBritanica: Boolean = false
+
+        /**
+         * Cambia la condición británica del automóvil.
+         * @param nuevaCondicion La nueva condición británica.
+         */
+        fun cambiarCondicionBritanica(nuevaCondicion: Boolean) {
+            condicionBritanica = nuevaCondicion
+            println("Se ha cambiado la condicion británica")
+        }
     }
 
     /**
@@ -39,13 +47,8 @@ class Automovil(
         }
     }
 
-    /**
-     * Cambia la condición británica del automóvil.
-     * @param nuevaCondicion La nueva condición británica.
-     */
-    fun cambiarCondicionBritanica(nuevaCondicion: Boolean) {
-        condicionBritanica = nuevaCondicion
-        println("Se ha cambiado la condicion británica")
+    override fun actualizarCombustible(distancia: Float) {
+        combustibleActual -= (distancia / KM_POR_LITRO).redondear(2)
     }
 
     /**

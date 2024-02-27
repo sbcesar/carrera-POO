@@ -10,8 +10,8 @@
  */
 abstract class Vehiculo(
     val nombre: String,
-    val marca: String,
-    val modelo: String,
+    private val marca: String,
+    private val modelo: String,
     capacidadCombustible: Float,
     combustibleActual: Float,
     kilometrosActuales: Float
@@ -61,6 +61,10 @@ abstract class Vehiculo(
         return "KM que el vehiculo puede recorrer: ${calcularAutonomia()}"
     }
 
+    open fun actualizarCombustible(distancia: Float) {
+        combustibleActual -= (distancia / KM_POR_LITRO).redondear(2)
+    }
+
     /**
      * Realiza un viaje con el vehículo.
      *
@@ -70,8 +74,7 @@ abstract class Vehiculo(
     open fun realizarViaje(distancia: Float): Float {
         val distanciaMaxima = calcularAutonomia()
         if (distancia <= distanciaMaxima) {
-            val combustibleConsumido = distancia / KM_POR_LITRO
-            combustibleActual -= combustibleConsumido
+            actualizarCombustible(distancia)
             kilometrosActuales += distancia
             return 0f   //Ha terminado el viaje
         } else {
@@ -89,9 +92,7 @@ abstract class Vehiculo(
      * @return La cantidad de combustible que se ha repostado en litros.
      */
     fun repostar(cantidad: Float): Float {
-        if (cantidad < 0f) {
-            return 0f
-        } else if (cantidad + combustibleActual >= capacidadCombustible) {
+        if ((cantidad <= 0f) || (cantidad + combustibleActual >= capacidadCombustible)) {
             //Si la cantidad llena el tanque
             val repostado = capacidadCombustible - combustibleActual
             combustibleActual = capacidadCombustible

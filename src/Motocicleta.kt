@@ -15,14 +15,18 @@ class Motocicleta(
     capacidadCombustible: Float,
     combustibleActual: Float,
     kilometrosActuales: Float,
-    var cilindrada: Int
+    private var cilindrada: Int
 ): Vehiculo(nombre, marca, modelo, capacidadCombustible, combustibleActual, kilometrosActuales) {
 
     companion object {
         /**
          * Kilómetros por litro de combustible para la motocicleta.
          */
-        const val KM_POR_LITRO = 20
+        const val KM_POR_LITRO = 20f
+    }
+
+    private fun obtenerKmLitro(): Float {
+        return if (cilindrada >= 1000) KM_POR_LITRO else (KM_POR_LITRO - (cilindrada / 1000)).redondear(2)
     }
 
     /**
@@ -30,28 +34,11 @@ class Motocicleta(
      * @return La autonomía de la motocicleta en kilómetros.
      */
     override fun calcularAutonomia(): Float {
-        val rendimiento = if (cilindrada >= 1000) KM_POR_LITRO else KM_POR_LITRO - (cilindrada / 1000)
-        return rendimiento * combustibleActual
+        return obtenerKmLitro() * combustibleActual
     }
 
-    /**
-     * Realiza un viaje con la motocicleta, actualizando el combustible y los kilómetros actuales.
-     * @param distancia La distancia a recorrer en kilómetros.
-     * @return La distancia restante si la motocicleta se queda sin combustible, de lo contrario 0.
-     */
-    override fun realizarViaje(distancia: Float): Float {
-        val distanciaMaxima = calcularAutonomia()
-        if (distancia <= distanciaMaxima) {
-            val combustibleConsumido = distancia / KM_POR_LITRO
-            combustibleActual -= combustibleConsumido
-            kilometrosActuales += distancia
-            return 0f   //Ha terminado el viaje
-        } else {
-            //Si la distancia es mayor que la autonomia, el vehiculo se queda sin combustible
-            combustibleActual = 0f
-            kilometrosActuales += distanciaMaxima
-            return distancia - distanciaMaxima      //Distancia restante
-        }
+    override fun actualizarCombustible(distancia: Float) {
+        combustibleActual -= (distancia / obtenerKmLitro()).redondear(2)
     }
 
     /**
@@ -59,7 +46,7 @@ class Motocicleta(
      * @return El combustible actual después de realizar el caballito.
      */
     fun realizarCaballito(): Float {
-        val combustibleConsumido = 6.5f / (KM_POR_LITRO)
+        val combustibleConsumido = 6.5f / obtenerKmLitro()
         combustibleActual -= combustibleConsumido
         return combustibleActual
     }

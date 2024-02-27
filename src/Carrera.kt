@@ -1,3 +1,4 @@
+import java.awt.Component.BaselineResizeBehavior
 import kotlin.random.Random
 
 /**
@@ -10,16 +11,20 @@ import kotlin.random.Random
  * @property historialAcciones Un mapa para registrar el historial de acciones de cada vehículo. La clave es el nombre del vehículo y el valor es una lista de strings describiendo sus acciones.
  * @property posiciones Un mapa para mantener un registro de la posición y los kilómetros recorridos por cada vehículo. Cada elemento es un par donde el primer valor es el nombre del vehículo y el segundo su kilometraje acumulado.
  */
-class Carrera(val nombreCarrera: String, val distanciaTotal: Float, val participantes: List<Vehiculo>) {
+class Carrera(val nombreCarrera: String, private val distanciaTotal: Float, private val participantes: List<Vehiculo>) {
 
     var estadoCarrera: Boolean = false
     val historialAcciones: MutableMap<String, MutableList<String>> = mutableMapOf()
     var posiciones: MutableMap<String, Int> = mutableMapOf()
 
-    var vecesRepostado = 0
+    private var vecesRepostado = 0
 
     init {
         require(distanciaTotal >= 1000f) { "La distancia total de la carrera debe ser igual o mayor que 1000." }
+    }
+
+    companion object {
+        const val KM_TRAMO = 20f
     }
 
     /**
@@ -30,74 +35,124 @@ class Carrera(val nombreCarrera: String, val distanciaTotal: Float, val particip
         while (estadoCarrera) {
             val vehiculoRandom = participantes.random()
             avanzarVehiculo(vehiculoRandom)
+            cajaSorpresa(vehiculoRandom)
             realizaPosiciones()
             determinarGanador()
         }
     }
 
-    /**
-     * Identificado el vehículo, le hace avanzar una distancia aleatoria entre 10 y 200 km. Si el vehículo necesita repostar, se llama al método repostarVehiculo() antes de que pueda continuar. Este método llama a realizar filigranas.
-     */
-    fun avanzarVehiculo(vehiculo: Vehiculo) {
-        var distanciaAleatoria = Random.nextInt(10,201)
-        val realizarFiligramaAleatorio = (1..3).random()
-        var numeroFilogramas = distanciaAleatoria / 20
+    private fun cajaSorpresa(vehiculo: Vehiculo) {
+        val cajaRandom = (1..10).random()
 
-        registrarAccion(vehiculo.nombre, "Iniciar viaje: A recorrer $distanciaAleatoria kms (${vehiculo.kilometrosActuales} kms y ${vehiculo.combustibleActual} L actuales)")
-        while (distanciaAleatoria > 0) {
+        when (cajaRandom) {
+            1 -> {
+                println("PREMIO!!")
+                sumar10(vehiculo)
+            }
+            2 -> {
+                println("PREMIO!!")
+                TODO("Funcion Teletransporte: Premio que nos teletransporta 100km más adelante en la carrera (sin superar la distancia total de la carrera). ")
+            }
+            3 -> {
+                println("PREMIO!!")
+                TODO("Funcion RetrasarTodos: Retrasar al resto de vehículos 100km (tope mínimo km 0).")
+            }
+            4 -> {
+                println("PENALIZACION!!")
+                TODO("Funcion VehiculoAlInicio: Retrasar un vehículo al azar al inicio (km 0)... puede ser el mismo vehículo al que le ha tocado la caja.")
+            }
+            5 -> {
+                println("PENALIZACION!!")
+                TODO("Funcion CasillaDeSalida: Retrasar nuestro vehículo al inicio (km 0).")
+            }
+            6 -> {
+                println("PENALIZACION!!")
+                TODO("Funcion Restar5: Penalización que resta 5km por litro para el siguiente avance en nuestro vehículo.")
+            }
+            7 -> {
+                println("Caja vacia (No realiza ninguna accion)")
+            }
+            8 -> {
+                println("Caja vacia (No realiza ninguna accion)")
+            }
+            9 -> {
+                println("Caja vacia (No realiza ninguna accion)")
+            }
+            10 -> {
+                println("Caja vacia (No realiza ninguna accion)")
+            }
+        }
+    }
 
-            vehiculo.combustibleActual = 0f
-            repostarVehiculo(vehiculo,vehiculo.capacidadCombustible)
+    private fun sumar10(vehiculo: Vehiculo) {
+        vehiculo.combustibleActual += vehiculo.combustibleActual * 10
+    }
+
+    private fun avanzarTramo(vehiculo: Vehiculo, distanciaTramo: Float) {
+        var distanciaNoRecorrida = vehiculo.realizarViaje(distanciaTramo)
+        registrarAccion(vehiculo.nombre, "Avance tramo: Recorrido ${(distanciaTramo - distanciaNoRecorrida).redondear(2)} kms.")
+
+        while (distanciaNoRecorrida > 0) {
+            repostarVehiculo(vehiculo, vehiculo.capacidadCombustible)
             vecesRepostado++
 
-            if (numeroFilogramas >= 1) {
-                when (realizarFiligramaAleatorio) {
-                    1 -> realizarFiligrana(vehiculo)
-                    2 -> {
-                        realizarFiligrana(vehiculo)
-                        realizarFiligrana(vehiculo)
-                    }
-                }
-                numeroFilogramas -= 1
-            }
-
-            distanciaAleatoria -= 20
-            vehiculo.kilometrosActuales += 20
-            registrarAccion(vehiculo.nombre, "Avance tramo: Recorrido 20 kms.")
+            val distanciaViaje = distanciaNoRecorrida
+            distanciaNoRecorrida = vehiculo.realizarViaje(distanciaViaje)
+            registrarAccion(vehiculo.nombre, "Avance tramo: Recorrido ${(distanciaViaje - distanciaNoRecorrida).redondear(2)} kms.")
         }
 
-        val kmLitros = if (vehiculo is Motocicleta) 20 else if (vehiculo is Automovil) 15 else 10
+        val totalFiligranas = (1..2).random()
+        repeat(totalFiligranas) {
+            realizarFiligrana(vehiculo)
+        }
+    }
 
-        vehiculo.combustibleActual = vehiculo.capacidadCombustible - distanciaAleatoria / kmLitros
-        vehiculo.kilometrosActuales += distanciaAleatoria
+    private fun obtenerDistanciaAleatoria(vehiculo: Vehiculo): Float {
+        val distancia = Random.nextInt(10,201)
 
-        registrarAccion(vehiculo.nombre, "Recorrido $distanciaAleatoria kms.")
+        return if (distancia + vehiculo.kilometrosActuales > distanciaTotal) {
+            (distanciaTotal - vehiculo.kilometrosActuales).redondear(2)
+        }
+        else {
+            distancia.toFloat()
+        }
+    }
+
+    private fun avanzarVehiculo(vehiculo: Vehiculo) {
+        val distanciaAleatoria = obtenerDistanciaAleatoria(vehiculo)
+
+        registrarAccion(vehiculo.nombre, "Iniciar viaje: A recorrer $distanciaAleatoria kms (${vehiculo.kilometrosActuales} kms y ${vehiculo.combustibleActual} L actuales)")
+
+        var distanciaARecorrer = distanciaAleatoria
+        while (distanciaARecorrer > 0) {
+
+            val distanciaTramo = minOf(KM_TRAMO, distanciaARecorrer).redondear(2)
+
+            avanzarTramo(vehiculo, distanciaTramo)
+
+            distanciaARecorrer = (distanciaARecorrer - distanciaTramo).redondear(2)
+        }
+
         registrarAccion(vehiculo.nombre, "Finaliza viaje: Total recorrido $distanciaAleatoria kms (${vehiculo.kilometrosActuales} kms y ${vehiculo.combustibleActual} L actuales)")
     }
 
     /**
      * Reposta el vehículo seleccionado, incrementando su combustibleActual y registrando la acción en historialAcciones.
      */
-    fun repostarVehiculo(vehiculo: Vehiculo, cantidad: Float) {
+    private fun repostarVehiculo(vehiculo: Vehiculo, cantidad: Float) {
         vehiculo.repostar(cantidad)
         registrarAccion(vehiculo.nombre,"Repostaje tramo: ${vehiculo.capacidadCombustible}")
-        realizarFiligrana(vehiculo)
     }
 
-    /**
-     * Determina aleatoriamente si un vehículo realiza una filigrana (derrape o caballito) y registra la acción.
-     */
-    fun realizarFiligrana(vehiculo: Vehiculo) {
-        val accionRandom = (1..2).random()
-
-        when (accionRandom) {
-            1 -> if (vehiculo is Motocicleta) {
-                vehiculo.realizarCaballito()
-                registrarAccion(vehiculo.nombre, "Caballito: Combustible restante ${(vehiculo.capacidadCombustible - vehiculo.combustibleActual).redondear(2)} L.")
-            }
-            2 -> if (vehiculo is Automovil) {
+    private fun realizarFiligrana(vehiculo: Vehiculo) {
+        when (vehiculo) {
+            is Automovil -> {
                 vehiculo.realizarDerrape()
-                registrarAccion(vehiculo.nombre, "Derrape: Combustible restante ${(vehiculo.capacidadCombustible - vehiculo.combustibleActual).redondear(2)} L.")
+                registrarAccion(vehiculo.nombre, "Derrape: Combustible restante ${vehiculo.combustibleActual} L.")
+            }
+            is Motocicleta -> {
+                vehiculo.realizarCaballito()
+                registrarAccion(vehiculo.nombre, "Caballito: Combustible restante ${vehiculo.combustibleActual} L.")
             }
         }
     }
@@ -105,30 +160,13 @@ class Carrera(val nombreCarrera: String, val distanciaTotal: Float, val particip
     /**
      * Actualiza posiciones con los kilómetros recorridos por cada vehículo después de cada iteración, manteniendo un seguimiento de la competencia.
      */
-    fun realizaPosiciones() {
+    private fun realizaPosiciones() {
         posiciones = mutableMapOf()
         //Ordena los participantes segun la distancia recorrida de mayor a menor
         val participantesOrdenados = participantes.sortedByDescending { vehiculo -> vehiculo.kilometrosActuales }
 
         //Actualiza en base al orden
-        participantesOrdenados.forEachIndexed { index, vehiculo -> posiciones[vehiculo.nombre] = vehiculo.kilometrosActuales.toInt() }
-
-        /**
-         * val nombresOrdenados = mutableListOf<String>()
-         *
-         * for (vehiculo in participantes) {
-         *      val distanciaRecorrida = posiciones[vehiculo.nombre]
-         *      var index = 0
-         *      while (index < nombresOrdenados.size && posiciones[nombresOrdenados[index]] > distanciaRecorrida) {
-         *          index++
-         *      }
-         *      nombresOrdenados.add(index, vehiculo.nombre)
-         * }
-         *
-         * for ((index, nombre) in nombresOrdenados.withIndex()) {
-         *      posiciones[nombre] = index + 1
-         * }
-         */
+        participantesOrdenados.forEach { vehiculo -> posiciones[vehiculo.nombre] = vehiculo.kilometrosActuales.toInt() }
     }
 
     /**
@@ -136,14 +174,14 @@ class Carrera(val nombreCarrera: String, val distanciaTotal: Float, val particip
      */
     fun determinarGanador(): String {
         val ganador =  posiciones.filter { it.value > distanciaTotal }
-            posiciones.forEach { (nombreJugador, kmRecorridos) -> if (kmRecorridos >= distanciaTotal) estadoCarrera = false }.toString()
+            posiciones.forEach { (_, kmRecorridos) -> if (kmRecorridos >= distanciaTotal) estadoCarrera = false }.toString()
         return ganador.keys.toString().replace("[","").replace("]","")
     }
 
     /**
      * Añade una acción al historialAcciones del vehículo especificado.
      */
-    fun registrarAccion(nombreVehiculo: String, accion: String) {
+    private fun registrarAccion(nombreVehiculo: String, accion: String) {
         if (historialAcciones.contains(nombreVehiculo)) {
             historialAcciones[nombreVehiculo]?.add(accion)
         } else {
