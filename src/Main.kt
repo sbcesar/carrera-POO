@@ -6,6 +6,16 @@ fun Float.redondear(digitos: Int): Float {
     return (this * factor).roundToInt() / factor
 }
 
+/**
+ * Funcion String que elimina el espacio en blanco sobrante al inicio y al final de la cadena y cambia a mayusculas cada palabra del string
+ *
+ * @return devuelve la palabra formateada
+ */
+fun String.formatearEspaciosCapitalizar(): String {
+    val nuevaPalabra = this.trim().split(" ").map { it.capitalize() }
+    return nuevaPalabra.joinToString(" ")
+}
+
 fun main() {
 
     val aurora = Automovil("Aurora", "Seat", "Panda", 50f, 50f * 0.1f, 0f, true,false) // Coche eléctrico con capacidad de 50 litros, inicia con el 10%
@@ -17,11 +27,11 @@ fun main() {
 
     val participantes = listOf(aurora,boreal,cefiro,dinamo,eclipse,fenix)
 
-    val carrera = Carrera("Gran Carrera de Filigranas", 1000f, participantes)
+    val carrera = Carrera("     gran carrera de filigranas     ", 1000f, participantes)
 
 
 
-    println("*** ${carrera.nombreCarrera} ***")
+    println("*** ${carrera.nombreCarrera.formatearEspaciosCapitalizar()} ***")
     println()
     println("¡Comienza la carrera!")
     println("••••••••••••••••••••••••••••")
@@ -33,8 +43,8 @@ fun main() {
     println()
     println("* Clasificacion: ")
     println()
-    val clasificacion = carrera.posiciones.toList()
-        .sortedByDescending { (key, kmRecorridos) -> kmRecorridos }
+    carrera.posiciones.toList()
+        .sortedByDescending { (_, kmRecorridos) -> kmRecorridos }
         .forEachIndexed { index, (nombre, kmRecorridos) ->
             println("${index + 1} -> $nombre ($kmRecorridos km)")
     }
@@ -43,11 +53,10 @@ fun main() {
     println()
     println("* Historial Detallado: ")
     println()
-    val historialDetallado = carrera.historialAcciones.toList()
+    carrera.historialAcciones.toList()
         .forEachIndexed { index, (nombre, historial) ->
             println("${index + 1} -> $nombre\n" +
                     historial.joinToString("\n")
             )
         }
-
 }
